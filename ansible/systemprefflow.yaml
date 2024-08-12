@@ -1,0 +1,96 @@
+---
+ -  name: System Preference
+    hosts: localhost
+    vars_prompt:
+    - name: address
+      prompt: Enter System IP
+      private: false
+    - name: usrname
+      prompt: Enter Username
+      private: false
+    - name: pswrd
+      prompt: Enter Password
+      private: false
+    - name: ch
+      prompt: |
+        Enter System Preference Options:
+        1. Software Update Information
+        2. Quorum Server Information
+        3. Product License Detatils
+        4. Owner Information
+        5. Mail Server Details
+        6. IP Configiration
+        7. System Date and Time
+      private: false
+
+    tasks:
+    - name: Login Authentication
+      include_tasks: logintask.yaml
+      vars:
+        ip: "{{ address }}"
+        token: "token_{{ ip }}.yaml"
+        refresh: "refreshToken_{{ ip }}.yaml"
+
+    - name: System Information
+      include_tasks: systemtask.yaml
+      vars:
+        ip: "{{ address }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+
+    - name: Software Update API
+      include_tasks: swupdatetask.yaml
+      vars:
+        ip: "{{ address }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "1"
+
+    - name: Quorum Server API
+      include_tasks: quorumservertask.yaml
+      vars:
+        ip: "{{ address }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "2"
+
+    - name: Product License API
+      include_tasks: productlicensetask.yaml
+      vars:
+        ip: "{{ address }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "3"
+
+    - name: Owner Information API
+      include_tasks: ownerinfotask.yaml
+      vars:
+        ip: "{{ address }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "4"
+
+    - name: Mail Server API
+      include_tasks: mailservertask.yaml
+      vars:
+        ip: "{{ address }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "5"
+
+    - name: IP Configuration API
+      include_tasks: ipconfigurationtask.yaml
+      vars:
+        ip: "{{ address }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "6"
+
+    - name: System Date and Time API
+      include_tasks: dateandtime.yaml
+      vars:
+        ip: "{{ address }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "7"
+
+    - name: Logout
+      include_tasks: logouttask.yaml
+      vars:
+        ip: "{{ address }}"
+        token: "token_{{ ip }}.yaml"
+        refresh: "refreshToken_{{ ip }}.yaml"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+        wtok: "null"

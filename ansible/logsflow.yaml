@@ -1,0 +1,51 @@
+---
+ -  name: Displaying Logs
+    hosts: localhost
+    vars_prompt:
+    - name: address
+      prompt: Enter System IP
+      private: false
+    - name: usrname
+      prompt: Enter Username
+      private: false
+    - name: pswrd
+      prompt: Enter Password
+      private: false
+    - name: ch
+      prompt: |
+        Enter Logs Options:
+        1. Support Logs
+        2. Audit Logs
+      private: false
+
+    tasks:
+    - name: Login Authentication
+      include_tasks: logintask.yaml
+      vars:
+        ip: "{{ address }}"
+        token: "token_{{ ip }}.yaml"
+        refresh: "refreshToken_{{ ip }}.yaml"
+
+    - name: Support Logs API
+      include_tasks: supportlogstask.yaml
+      vars:
+        ip: "{{ address }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "1"
+
+    - name: Audit Logs API
+      include_tasks: auditlogstask.yaml
+      vars:
+        ip: "{{ address }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "2"
+
+    - name: Logout
+      include_tasks: logouttask.yaml
+      vars:
+        ip: "{{ address }}"
+        token: "token_{{ ip }}.yaml"
+        refresh: "refreshToken_{{ ip }}.yaml"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+        wtok: "null"
+

@@ -1,0 +1,105 @@
+
+ - name: Physical Machines Operations
+   hosts: localhost
+   vars_prompt:
+   - name: address
+     prompt: Enter System IP
+     private: false
+   - name: usrname
+     prompt: Enter Username
+     private: false
+   - name: pswrd
+     prompt: Enter Password
+     private: true
+   vars:
+     access: "{{ lookup('file','token_{{ address }}.yaml') }}"
+     ip_file: "ipfile.yaml"
+   tasks:
+   - name: Login Authentication
+     include_tasks: logintask.yaml
+     vars:
+       ip: "{{ address }}"
+       token: "token_{{ address }}.yaml"
+       refresh: "refreshToken_{{ address }}.yaml"
+   - name: Fetching Machine Information "{{ address }}"
+     uri:
+       url: "https://{{ address }}/restapi/v2/physicalmachines"
+       headers:
+        Authorization: "Bearer {{ access }}"
+        Content-Type: 'application/json'
+       validate_certs: no
+       follow_redirects: all
+       return_content: yes
+       status_code: 200
+       method: GET
+     register: PM_Info
+
+   - name: STATUS
+     ansible.builtin.debug:
+       var: PM_Info.content
+
+   - name: Storing IP Address
+     ansible.builtin.copy:
+       content: "{{ address }}"
+       dest: "{{ ip_file }}"
+
+
+ -  name: Selecting The Node
+    hosts: localhost
+    vars:
+      address: "{{ lookup('file','ipfile.yaml') }}"
+    vars_prompt:
+    - name: nam
+      prompt: Enter NODE Name you want to perform Operations
+      private: false
+    - name: ch
+      prompt: |
+        Enter System Preference Options:
+        1. WORK ON
+        2. WORK OFF
+        3. NODE SHUTDOWN
+        4. SYSTEM SHUTDOWN
+      private: false
+    tasks:
+
+    - name: WORK ON Operation
+      include_tasks: workontask.yaml
+      vars:
+        ip: "{{ address }}"
+        node: "{{ nam }}"
+        frce: "false"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "1"
+
+    - name: WORK OFF Operation
+      include_tasks: workofftask.yaml
+      vars:
+        ip: "{{ address }}"
+        node: "{{ nam }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "2"
+
+    - name: NODE SHUTDOWN Operation
+      include_tasks: nodeshutdowntask.yaml
+      vars:
+        ip: "{{ address }}"
+        node: "{{ nam }}"
+        finalize: "true"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "3"
+
+    - name: SYSTEM SHUTDOWN Operation
+      include_tasks: systemshutdowntask.yaml
+      vars:
+        ip: "{{ address }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "4"
+
+    - name: Logout
+      include_tasks: logouttask.yaml
+      vars:
+        ip: "{{ address }}"
+        token: "token_{{ ip }}.yaml"
+        refresh: "refreshToken_{{ ip }}.yaml"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+        wtok: "null"

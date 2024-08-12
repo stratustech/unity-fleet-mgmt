@@ -1,0 +1,44 @@
+---
+- name: Login Aunthentication
+  hosts: localhost
+  vars_files:
+    - alias.yaml
+  vars_prompt:
+    - name: alia
+      prompt: Enter System IP
+      private: false
+    - name: usrname
+      prompt: Enter Username
+      private: false
+    - name: pswrd
+      prompt: Enter Password
+      private: true
+  vars:
+    ip: "{{ lookup('vars', alia) }}"
+    token: "token_{{ ip }}.yaml"
+    refresh: "refreshToken_{{ ip }}.yaml"
+  tasks:
+    - name: login
+      ansible.builtin.uri:
+        url: "https://{{ ip }}:8888/restapi/v2/login"
+        method: POST
+        body_format: json
+        body: '{
+          "username": "{{usrname}}",
+          "password": "{{pswrd}}"
+        }'
+        validate_certs: no
+        status_code: 200
+        timeout: 30
+      register: result
+    - name: token generated
+      ansible.builtin.debug:
+        var: result.json
+    - name: Storing Token
+      ansible.builtin.copy:
+        content: "{{ result.json.token }}"
+        dest: "{{ token }}"
+    - name: Storing Refresh Token
+      ansible.builtin.copy:
+        content: "{{ result.json.refreshToken }}"
+        dest: "{{ refresh }}"

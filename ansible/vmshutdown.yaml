@@ -1,0 +1,38 @@
+---
+
+- name: VM Shutdown API
+  hosts: localhost
+  vars_prompt:
+    - name: ip
+      prompt: Enter System IP
+      private: false
+    - name: vm
+      prompt: Enter The VM to shutdown
+      private: false
+
+  vars:
+    access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+  tasks:
+    - name: Shutting down VM
+      uri:
+        url: "https://{{ ip }}/restapi/v2/virtualmachines/vmshutdown"
+        headers:
+          Authorization: "Bearer {{ access }}" 
+          Content-Type: 'application/json'
+        body_format: json
+        body: '{
+          "vmname": "{{ vm }}"
+        }'
+        validate_certs: no
+        follow_redirects: all
+        return_content: yes
+        status_code: 200
+        method: POST
+      register: result
+
+    - name: STATUS
+      ansible.builtin.debug:
+        var: result.content
+
+
+

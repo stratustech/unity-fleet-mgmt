@@ -1,0 +1,20 @@
+    - name: Powering ON VM
+      uri:
+        url: "https://{{ ip }}/restapi/v2/virtualmachines/vmpoweron"
+        headers:
+          Authorization: "Bearer {{ access }}" 
+          Content-Type: 'application/json'
+        body_format: json
+        body: '{
+          "vmname": "{{vm}}"
+        }'
+        validate_certs: no
+        follow_redirects: all
+        return_content: yes
+        status_code: 200
+        method: POST
+      register: result
+
+    - name: STATUS
+      ansible.builtin.debug:
+        var: result.content
