@@ -1,0 +1,23 @@
+---
+
+- name: Admin Tools API
+  hosts: localhost
+  vars:
+    access: "{{ lookup('file','/tmp/token_{{ ip }}.yaml') }}"
+  tasks:
+    - name: Fetching admin tools
+      uri:
+        url: "https://{{ ip }}/restapi/v2/pref/admintools"
+        headers:
+          Authorization: "Bearer {{ access }}" 
+          Content-Type: 'application/json'
+        validate_certs: no
+        follow_redirects: all
+        return_content: yes
+        status_code: 200
+        method: GET
+      register: result
+
+    - name: STATUS
+      ansible.builtin.debug:
+        var: result.content
