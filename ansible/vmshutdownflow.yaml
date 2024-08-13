@@ -1,0 +1,145 @@
+- name: VM Shutdown Workflow
+  hosts: localhost
+
+- name: Login Aunthentication
+  hosts: localhost
+  vars_prompt:
+    - name: ip
+      prompt: Enter System IP
+      private: false
+    - name: usrname
+      prompt: Enter Username
+      private: false
+    - name: pswrd
+      prompt: Enter Password
+      private: true
+  vars:
+    server: "https://{{ ip }}:8888/restapi"
+    endpoint: "/v2/login"
+    token: "token_{{ ip }}.yaml"
+    refresh: "refreshToken_{{ ip }}.yaml"
+  tasks:
+    - name: login
+      ansible.builtin.uri:
+        url: "{{ server }}{{ endpoint }}"
+        method: POST
+        body_format: json
+        body: '{
+          "username": "{{usrname}}",
+          "password": "{{pswrd}}"
+        }'
+        validate_certs: no
+        status_code: 200
+        timeout: 30
+      register: result
+    - name: token generated
+      ansible.builtin.debug:
+        var: result.json
+    - name: Storing Token
+      ansible.builtin.copy:
+        content: "{{ result.json.token }}"
+        dest: "{{ token }}"
+    - name: Storing Refresh Token
+      ansible.builtin.copy:
+        content: "{{ result.json.refreshToken }}"
+        dest: "{{ refresh }}"
+
+
+- name: List VM API
+  hosts: localhost
+#  vars_prompt:
+#    - name: ip
+#      prompt: Enter System IP
+#      private: false
+  vars:
+    ip: "10.201.4.216"
+    access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+  tasks:
+    - name: Fetching VM Information
+      uri:
+        url: "https://{{ ip }}/restapi/v2/resource/virtualmachines"
+        headers:
+          Authorization: "Bearer {{ access }}" 
+          Content-Type: 'application/json'
+        validate_certs: no
+        follow_redirects: all
+        return_content: yes
+        status_code: 200
+        method: GET
+      register: result
+
+    - name: STATUS
+      ansible.builtin.debug:
+        var: result.content
+
+- name: VM Shutdown API
+  hosts: localhost
+  vars_prompt:
+#    - name: ip
+#      prompt: Enter System IP
+#      private: false
+    - name: vm
+      prompt: Enter The VM to shutdown
+      private: false
+
+  vars:
+    access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+    ip: "10.201.4.216"
+  tasks:
+    - name: Shutting down VM
+      uri:
+        url: "https://{{ ip }}/restapi/v2/virtualmachines/vmshutdown"
+        headers:
+          Authorization: "Bearer {{ access }}" 
+          Content-Type: 'application/json'
+        body_format: json
+        body: '{
+          "vmname": "{{ vm }}"
+        }'
+        validate_certs: no
+        follow_redirects: all
+        return_content: yes
+        status_code: 200
+        method: POST
+      register: result
+
+    - name: STATUS
+      ansible.builtin.debug:
+        var: result.content
+
+- name: Logout API
+  hosts: localhost
+#  vars_prompt:
+#    - name: ip
+#      prompt: Enter System IP
+#      private: false
+
+  vars:
+    ip: "10.201.4.216"
+    access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+    wtok: "null"
+    token: "token_{{ ip }}.yaml"
+  tasks:
+
+    - name: Performing Logout
+      uri:
+        url: "https://{{ ip }}:8888/restapi/v2/logout"
+        headers:
+          Authorization: "Bearer {{ access }}"
+          Content-Type: 'application/json'
+        validate_certs: no
+        follow_redirects: all
+        return_content: yes
+        status_code: 200
+        method: PUT
+      register: result
+
+    - name: STATUS
+      ansible.builtin.debug:
+        var: result.content
+
+    - name: Storing Token
+      ansible.builtin.copy:
+        content: "{{ wtok }}"
+        dest: "{{ token }}"
+

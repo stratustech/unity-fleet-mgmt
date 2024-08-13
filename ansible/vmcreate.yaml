@@ -1,0 +1,71 @@
+---
+- name: VM Create API
+  hosts: localhost
+  vars:
+    access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+  vars_prompt:
+    - name: ip
+      prompt: Enter System IP
+      private: false
+    - name: vmname
+      prompt: Enter VM Name
+      private: false
+    - name: description
+      prompt: Enter Description
+      private: false
+    - name: bootType
+      prompt: Enter Boot Type
+      private: false
+    - name: virtualCpus
+      prompt: Enter Number of Virtual CPUs
+      private: false
+    - name: memory
+      prompt: Enter Memory Size
+      private: false
+    - name: availabilityLevel 
+      prompt: Enter Availablity Level
+      private: false
+    - name: prefferednode
+      prompt: Enter Preffered Node
+      private: false
+    - name: volumes
+      prompt: Enter Number of Volumes
+      private: false
+    - name: remotetype
+      prompt: Enter Remote Type
+      private: false
+    - name: remoteisopath
+      prompt: Enter Remote ISO Path
+      private: false
+    - name: network
+      prompt: Enter Network
+      private: false
+  tasks:
+    - name: Creating VM
+      ansible.builtin.uri:
+        url: "https://{{ ip }}/restapi/v2/virtualmachines/vmcreate" 
+        headers:
+          Authorization: "Bearer {{ access }}"
+          Content-Type: 'application/json'
+        method: POST
+        body_format: json
+        body: '{
+          "vmname": "{{vmname}}",
+          "description": "{{description}}",
+          "bootType": "{{bootType}}",
+          "virtualCpus": "{{virtualCpus}}",
+          "memory": "{{memory}}",
+          "availabilityLevel": "{{availabilityLevel}}",
+          "prefferednode": "{{prefferednode}}",
+          "volumes": ["{{volumes}}"],
+          "remotetype": "{{remotetype}}",
+          "remoteisopath": "{{remoteisopath}}",
+          "network": ["{{network}}"]
+        }'
+        validate_certs: no
+        status_code: 200
+        timeout: 100
+      register: result
+    - name: Status
+      ansible.builtin.debug:
+        var: result

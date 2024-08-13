@@ -1,0 +1,104 @@
+
+ - name: Virtual Machines Operations
+   hosts: localhost
+   vars_prompt:
+   - name: address
+     prompt: Enter System IP
+     private: false
+   - name: usrname
+     prompt: Enter Username
+     private: false
+   - name: pswrd
+     prompt: Enter Password
+     private: true
+   vars:
+     access: "{{ lookup('file','token_{{ address }}.yaml') }}"
+     ip_file: "ipfile.yaml"
+   tasks:
+   - name: Login Authentication
+     include_tasks: logintask.yaml
+     vars:
+       ip: "{{ address }}"
+       token: "token_{{ address }}.yaml"
+       refresh: "refreshToken_{{ address }}.yaml"
+   - name: Fetching VM Information "{{ address }}"
+     uri:
+       url: "https://{{ address }}/restapi/v2/resource/virtualmachines"
+       headers:
+        Authorization: "Bearer {{ access }}"
+        Content-Type: 'application/json'
+       validate_certs: no
+       follow_redirects: all
+       return_content: yes
+       status_code: 200
+       method: GET
+     register: VM_Info
+
+   - name: STATUS
+     ansible.builtin.debug:
+       var: VM_Info.content
+
+   - name: Storing IP Address
+     ansible.builtin.copy:
+       content: "{{ address }}"
+       dest: "{{ ip_file }}"
+
+
+ -  name: Selecting The Virtual Machine
+    hosts: localhost
+    vars:
+      address: "{{ lookup('file','ipfile.yaml') }}"
+    vars_prompt:
+    - name: nam
+      prompt: Enter VM Name you want to perform Operations
+      private: false
+    - name: ch
+      prompt: |
+        Enter System Preference Options:
+        1. POWER ON
+        2. POWER OFF
+        3. SHUTDOWN
+        4. VM COPY
+      private: false
+    tasks:
+
+    - name: Powering ON VM
+      include_tasks: vmpowerontask.yaml
+      vars:
+        ip: "{{ address }}"
+        vm: "{{ nam }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "1"
+
+    - name: Powering OFF VM
+      include_tasks: vmpowerofftask.yaml
+      vars:
+        ip: "{{ address }}"
+        vm: "{{ nam }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "2"
+
+    - name: Shutting Down VM
+      include_tasks: vmshutdowntask.yaml
+      vars:
+        ip: "{{ address }}"
+        vm: "{{ nam }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "3"
+
+    - name: Copying VM
+      include_tasks: vmcopytask.yaml
+      vars:
+        ip: "{{ address }}"
+        vm: "{{ nam }}"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+      when: ch == "4"
+
+    - name: Logout
+      include_tasks: logouttask.yaml
+      vars:
+        ip: "{{ address }}"
+        token: "token_{{ ip }}.yaml"
+        refresh: "refreshToken_{{ ip }}.yaml"
+        access: "{{ lookup('file','token_{{ ip }}.yaml') }}"
+        wtok: "null"
