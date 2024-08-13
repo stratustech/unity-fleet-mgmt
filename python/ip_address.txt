@@ -1,4 +1,0 @@
-10.201.4.216
-10.201.147.29
-qa175ld.sn.stratus.com
-tbird7ba.sn.stratus.com
